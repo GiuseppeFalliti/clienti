@@ -34,5 +34,3 @@ Il progetto è suddiviso in due classi principali:
 
 ## Autore
 - [@Giuseppe-Falliti](https://www.github.com/GiuseppeFalliti)
-
-## License
