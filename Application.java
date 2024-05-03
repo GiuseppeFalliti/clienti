@@ -1,9 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.prefs.Preferences;
-import java.util.Random;
 import java.io.*;
 
 public class Application extends JFrame {
@@ -12,16 +9,26 @@ public class Application extends JFrame {
     private static final String POS_X = "x";
     private static final String POS_Y = "y";
     private Container cp;
-    private static final int NUM_PLAZZE = 10;
-    private static final int NUM_PIANONI = 3;
-    private static JTextArea auto;
+    private JTextArea textArea;
+    private Dialog dialog;
+    private JPanel panelDialog;
+    private JLabel name;
+    private JLabel surname;
+    private JLabel salary;
+    private JLabel email;
+    private JTextField nameField;
+    private JTextField surnameField;
+    private JTextField salaryField;
+    private JTextField emailField;
+    private JButton add;
+
     private Preferences preferences;
-    private  static Timer timer;
 
     public Application() {
         super();
         cp = this.getContentPane();
-        this.setTitle("Application");
+        cp.setLayout(new BoxLayout(cp, BoxLayout.PAGE_AXIS));
+        this.setTitle("Gestione Clienti");
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         preferences = Preferences.userNodeForPackage(Application.class);
         int width = preferences.getInt(WIDTH_KEY, 300);
@@ -29,9 +36,8 @@ public class Application extends JFrame {
         int posx = preferences.getInt(POS_X, 100);
         int posy = preferences.getInt(POS_Y, 100);
 
-        this.setSize(800, 700);
+        this.setSize(width, height);
         this.setLocation(posx, posy);
-        this.setResizable(false);
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -39,109 +45,103 @@ public class Application extends JFrame {
                 System.exit(0);
             }
         });
+        startDialog(); // Metodo per inizializzare il dialogo
         this.setupApp();
-       avviaThreadAutoLibere(); 
+    }
+
+    private void startDialog() {
+        dialog = new JDialog(this, "add Client", true);
+        dialog.setLocation(this.getX(), this.getY());
+        panelDialog = new JPanel();
+        panelDialog.setLayout(new GridLayout(5, 4));
+        // Add tutti i componenti necessari al pannello del dialogo.
+        name = new JLabel("Name");
+        surname = new JLabel("Surname");
+        salary = new JLabel("Salary");
+        email = new JLabel("Email");
+        //inserimento dati
+        nameField = new JTextField(10);
+        surnameField = new JTextField(10);
+        salaryField = new JTextField(10);
+        emailField = new JTextField(10);
+        add = new JButton("Add");
+
+        add.addActionListener(e -> {
+            Clienti cli1 = new Clienti(nameField.getText(), surnameField.getText(), Double.parseDouble(salaryField.getText()), emailField.getText());
+            textArea.append(cli1.getNome() + "#" + cli1.getCognome() + "#" + cli1.getStipendio() + "#" + cli1.getEmail() + "\n");
+            dialog.dispose();
+        });
+
+        panelDialog.add(name);
+        panelDialog.add(nameField);
+        panelDialog.add(surname);
+        panelDialog.add(surnameField);
+        panelDialog.add(salary);
+        panelDialog.add(salaryField);
+        panelDialog.add(email);
+        panelDialog.add(emailField);
+        panelDialog.add(add);
+
+        dialog.add(panelDialog);
+        dialog.pack();
     }
 
     private void setupApp() {
+        // Creazione della text area che conterrà tutti i clienti
+        textArea = new JTextArea(10, 30);
+        textArea.setEditable(false);
+        textArea.setBackground(new Color(52, 52, 52));
+        textArea.setForeground(new Color(255, 255, 255));
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        textArea.setFont(new Font(scrollPane.getFont().getName(),Font.BOLD,18));
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+              
+
+        // Creazione della JMenuBar
         JMenuBar menuBar = new JMenuBar();
+        menuBar.setBackground(new Color(255, 255, 255));
+        // Creazione del menu File
         JMenu fileMenu = new JMenu("File");
-        JMenuItem start = new JMenuItem("start Simulator");
-        JMenuItem fine = new JMenuItem("fine Simulator");
-        JMenuItem save = new JMenuItem("Save");
-        fileMenu.add(start);
-        fileMenu.add(fine);
-        fileMenu.add(save);
-        menuBar.add(fileMenu);
-        setJMenuBar(menuBar);
+        JMenuItem addclient = new JMenuItem("add Client");
+        JMenuItem checksalary = new JMenuItem("Check salary");
+        JMenuItem openItem = new JMenuItem("Open");
+        JMenuItem saveItem = new JMenuItem("Save");
 
-        JPanel carPanel = new JPanel();
-        carPanel.setLayout(new GridLayout(NUM_PIANONI, NUM_PLAZZE));
-        carPanel.setPreferredSize(new Dimension(1500, 300));
-
-        Random bool = new Random();
-        for (int i = 0; i < NUM_PIANONI; i++) {
-            for (int j = 0; j < NUM_PLAZZE; j++) {
-                 auto = new JTextArea();
-                auto.append("Piano " + (i + 1) + ", Posto " + (j + 1) + "\n");
-                auto.append(" ");
-                auto.setFont(new Font("Arial", Font.BOLD, 16));
-                auto.setBackground(Color.WHITE);
-                auto.setForeground(Color.BLACK);
-                auto.setEditable(false);
-                auto.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                if (bool.nextBoolean()) {
-                    auto.append("Gia Occupato");
-                    auto.setBackground(Color.RED);
-                    auto.setForeground(Color.WHITE);
-                } else {
-                    auto.append("Libero");
-                    auto.setBackground(Color.GREEN);
-                    auto.setForeground(Color.BLACK);
-                }
-                carPanel.add(auto);
-            }
-        }
-        start.addActionListener(e->{
-            addCar();
+        addclient.addActionListener(e -> {
+            dialog.setVisible(true); 
         });
-        save.addActionListener(e1->{
+
+        checksalary.addActionListener(e -> {
+            String[] s = textArea.getText().split("\n");
+            double max = 0;
+            for (int i = 0; i < s.length; i++) {
+                String[] s1 = s[i].split("#");
+                double stipendio = Double.parseDouble(s1[2]);
+                if (stipendio > max) {
+                    max = stipendio;
+                }
+            }
+            JOptionPane.showMessageDialog(this, "Il massimo stipendio è: " + max);
+        });
+
+        saveItem.addActionListener(e -> {
             save();
         });
-        fine.addActionListener(e2->{
-            fineSimulator();
+
+        openItem.addActionListener(e -> {
+            open();
         });
+
         
-
-        cp.add(carPanel);
-        setVisible(true);
-        pack();
+        fileMenu.add(addclient);
+        fileMenu.add(checksalary);
+        fileMenu.add(openItem);
+        fileMenu.add(saveItem);
+        menuBar.add(fileMenu);
+        setJMenuBar(menuBar);
+        cp.add(scrollPane);
     }
-   private void addCar() {
-        timer = new Timer(2000, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String[] stringtarga = {"A", "B", "1", "E", "Y", "4", "6"};
-                Random random = new Random();
-                String stringTarga = "";
-                for (int i = 0; i < stringtarga.length; i++) {
-                    int targa = random.nextInt(7);
-                    stringTarga += stringtarga[targa];
-                }
-                Auto nuovaAuto = new Auto(stringTarga);
-    
-                Component[] components = cp.getComponents();
-                for (Component varcomponents : components) {
-                    if (varcomponents instanceof JPanel) {
-                        Component[] component = ((JPanel) varcomponents).getComponents();
-                        for (Component subcomponent : component) {
-                            if (subcomponent instanceof JTextArea) {
-                                JTextArea autoTextArea = (JTextArea) subcomponent;
-                                synchronized (autoTextArea) {
-                                    if (autoTextArea.getText().contains("Libero")) {
-                                        autoTextArea.setText("Piano " + autoTextArea.getName() + ", Posto " + autoTextArea.getName() + "\n");
-                                        autoTextArea.append("Occupato\n");
-                                        autoTextArea.append("Targa: " + nuovaAuto.getTarga() + "\n");
-                                        autoTextArea.setBackground(Color.RED);
-                                        autoTextArea.setForeground(Color.WHITE);
-                                        return;
-                                    } 
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        timer.start();
-    }
-    private void fineSimulator(){
-        timer.stop();
-        JOptionPane.showMessageDialog(this, "Fine simulazione");
-    }
-
-
-
 
     public void save() {
         JFileChooser fileChooser = new JFileChooser();
@@ -150,75 +150,55 @@ public class Application extends JFrame {
             File file = fileChooser.getSelectedFile();
             try {
                 FileWriter fileWriter = new FileWriter(file);
-                Component[] components = cp.getComponents();
-                for (Component varcomponent : components) {
-                    if (varcomponent instanceof JPanel) {
-                        Component[] subComponents = ((JPanel) varcomponent).getComponents();
-                        for (Component varComponent : subComponents) {
-                            if (varComponent instanceof JTextArea) {
-                                JTextArea auto = (JTextArea) varComponent;
-                                if (auto.getText().contains("Occupato")) {
-                                    String targa = auto.getText().substring(auto.getText().lastIndexOf("Targa: ") + 7);
-                                    fileWriter.write(targa.trim() + "\n");
-                                }
-                            }
-                        }
-                    }
+                String[] s = textArea.getText().split("\n");
+                for (int i = 0; i < s.length; i++) {
+                    String[] s1 = s[i].split("#");
+
+                    fileWriter.write(s1[0] + "#");
+                    fileWriter.write(s1[1] + "#");
+                    fileWriter.write(s1[2] + "#");
+                    fileWriter.write(s1[3] + "#");
+
                 }
+
                 fileWriter.close();
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
         }
-    } 
 
-    //metodo che utilizza i thread per liberare i posti auto occupati.
-    private void avviaThreadAutoLibere() {
-        Thread liberoAutoThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        Thread.sleep(50000); 
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    liberareAuto();
-                }
-            }
-        });
-        liberoAutoThread.start();
     }
 
-    private void liberareAuto() {
-        // Genera casualmente quale JTextArea liberare
-        Random random = new Random();
-        boolean[] daLiberare = new boolean[NUM_PLAZZE * NUM_PIANONI];
-        for (int i = 0; i < NUM_PLAZZE * NUM_PIANONI; i++) {
-            daLiberare[i] = random.nextBoolean();
-        }
-    
-        Component[] componenti = cp.getComponents();
-        int postoCorrente = 0;
-        for (Component componente : componenti) {
-            if (componente instanceof JPanel) {
-                Component[] component = ((JPanel) componente).getComponents();
-                for (Component subcomponent : component) {
-                    if (subcomponent instanceof JTextArea) {
-                        JTextArea auto = (JTextArea) subcomponent;
-                        if (auto.getText().contains("Occupato") && daLiberare[postoCorrente]) {
-                            auto.setText("Piano " + auto.getName() + ", Posto " + auto.getName() + "\n" + "Libero");
-                            auto.setBackground(Color.GREEN);
-                            auto.setForeground(Color.BLACK);
-                        }
-                        postoCorrente++;
+    public void open() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                StringBuilder content = new StringBuilder();
+                while ((line = reader.readLine()) != null) {
+                    String[] client = line.split("#");
+                    if (client.length >= 4) {
+                        String nome = client[0];
+                        String cognome = client[1];
+                        double stipendio = Double.parseDouble(client[2]);
+                        String email = client[3];
+                        // add informazioni del cliente alla textArea
+                        content.append(nome).append("#").append(cognome).append("#").append(stipendio).append("#").append(email).append("\n");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Errore lettura file: La riga non contiene abbastanza elementi");
+                        
                     }
+
                 }
+                textArea.setText(content.toString());
+            } catch (IOException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Errore lettura file");
             }
         }
     }
-    
-    
 
     public void saveUserDimensions() {
         preferences.putInt(WIDTH_KEY, getWidth());
@@ -228,8 +208,7 @@ public class Application extends JFrame {
     }
 
     public void startApp(boolean packElements) {
-        if (packElements)
-            this.pack();
+        if (packElements) this.pack();
         this.setVisible(true);
     }
 
